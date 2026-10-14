@@ -17,7 +17,7 @@ A liquid glass makeover for X. Same feed, a more personal look.
 
 ## Theme examples
 
-Two color themes for the same extension. You can switch presets or choose your own HEX color in Appearance.
+Three themes for the same extension. Liquid Glass and Cyberpunk Neon follow the color you choose: switch presets or enter your own HEX color in Appearance.
 
 ### Aurora theme
 
@@ -27,7 +27,11 @@ Two color themes for the same extension. You can switch presets or choose your o
 
 ![X notifications with the Amber liquid glass theme](docs/screenshots/theme-amber.png)
 
-Screenshots show customized settings. The “Review” button in the Home image belongs to another extension.
+### Cyberpunk Neon theme
+
+![X Home with the Cyberpunk Neon theme in the Rose color](docs/screenshots/theme-cyberpunk-neon.png)
+
+Screenshots show customized settings. The “Review” button in the Home images belongs to another extension.
 
 Default appearance: **Amber**, **50% tint**, **10 px blur**, **0% glass opacity**. Reset restores these values; saved preferences take priority over defaults.
 

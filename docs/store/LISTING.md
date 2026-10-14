@@ -85,10 +85,11 @@ No developer credentials or access to a personal account are required or provide
 - Marquee promotional tile: `docs/store/marquee-1400x560.png` (optional).
 - Aurora theme screenshot: `docs/store/theme-aurora-1280x800.png`.
 - Amber theme screenshot: `docs/store/theme-amber-1280x800.png`.
+- Cyberpunk Neon theme screenshot: `docs/store/theme-cyberpunk-neon-1280x800.png`.
 
 Promotional tiles and screenshots are exported as 24-bit RGB PNGs with no alpha channel. Extension icons retain transparent padding.
 
-The screenshots show two color themes for the same extension: Aurora and Amber. They use the owner-supplied images already published in the README with customized settings. The underlying captures are Home and notifications, but the listing presents the color palettes. The Review button in the Aurora image belongs to another extension and is not a feature of XGlow.
+The screenshots show the same extension with two Liquid Glass colors, Aurora and Amber, and the Cyberpunk Neon theme in the Rose color. They use the owner-supplied images already published in the README with customized settings. The underlying captures are Home and notifications, but the listing presents the themes and palettes. The Review button in the Aurora and Cyberpunk Neon images belongs to another extension and is not a feature of XGlow.
 
 To regenerate the committed artwork, install ImageMagick and run `npm run build:store`. This optional export is separate from extension packaging and does not add a runtime dependency.
 

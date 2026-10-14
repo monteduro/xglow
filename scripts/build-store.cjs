@@ -68,4 +68,5 @@ ${iconAt(34, 35, 128 * .7)}
 }
 screenshot({ source: 'theme-aurora.png', title: 'Aurora theme', subtitle: 'Cool violet. Soft reflections.', detail: 'Same extension. Different color theme.', color: '#a6b3ff', tone: '#111420', footer: 'Custom settings. Review is a separate extension.', output: 'theme-aurora-1280x800.png' });
 screenshot({ source: 'theme-amber.png', title: 'Amber theme', subtitle: 'Warm gold. Soft reflections.', detail: 'Same extension. Different color theme.', color: '#f4b952', tone: '#191714', footer: 'Custom Amber settings shown.', output: 'theme-amber-1280x800.png' });
-console.log('Exported extension icons, opaque 440×280 and 1400×560 promo tiles and two 1280×800 listing images.');
+screenshot({ source: 'theme-cyberpunk-neon.png', title: 'Neon theme', subtitle: 'Cyberpunk glow. Rose and green.', detail: 'Same extension. A different theme.', color: '#ef9dc6', tone: '#140f1a', footer: 'Rose color shown. Review is a separate extension.', output: 'theme-cyberpunk-neon-1280x800.png' });
+console.log('Exported extension icons, opaque 440×280 and 1400×560 promo tiles and three 1280×800 listing images.');
