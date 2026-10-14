@@ -15,7 +15,8 @@
     "build:store": "node scripts/build-store.cjs",
     "predev": "npm run build:preview",
     "dev": "node scripts/serve-preview.cjs",
-    "package": "node scripts/package.cjs"
+    "package": "node scripts/package.cjs",
+    "build:safari": "node scripts/build-safari.cjs"
   },
   "devDependencies": {
     "@playwright/test": "1.64.0"

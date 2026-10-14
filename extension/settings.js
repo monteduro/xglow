@@ -2,6 +2,11 @@
 globalThis.XGlow = (() => {
   const storageKey = 'xGlass';
 
+  /* Safari and Firefox expose the promise-based WebExtension API as
+     `browser`; Chrome exposes it as `chrome`. Resolved on each call so the
+     preview's storage adapter can install itself first. */
+  const api = () => globalThis.browser?.storage ? globalThis.browser : globalThis.chrome;
+
   const themeDefinitions = Object.freeze({
     glass: Object.freeze({
       label: 'Liquid Glass', stylesheet: 'glass.css',
@@ -220,5 +225,5 @@ globalThis.XGlow = (() => {
     return themeDefinitions[settings.theme].palette(settings, tone, rgb, controlEnd);
   }
 
-  return { storageKey, defaults, accents, themes, themeDefinitions, normalize, colorHex, palette };
+  return { api, storageKey, defaults, accents, themes, themeDefinitions, normalize, colorHex, palette };
 })();

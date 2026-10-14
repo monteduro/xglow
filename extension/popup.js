@@ -1,5 +1,5 @@
-/* Extension popup. Preferences are stored in chrome.storage.local; open X
-   tabs pick up every change live through storage.onChanged. */
+/* Extension popup. Preferences are stored in the extension's local storage;
+   open X tabs pick up every change live through storage.onChanged. */
 (() => {
   'use strict';
 
@@ -14,6 +14,7 @@
     invalidHex: 'Enter a HEX color, e.g. #22c55e.'
   };
 
+  const extensionApi = XGlow.api();
   const status = $('status');
   const hexInput = $('customHex');
   const swatches = [...document.querySelectorAll('[data-accent]')];
@@ -77,7 +78,7 @@
     const snapshot = { ...settings };
     status.textContent = MESSAGES.saving;
     queue = queue.catch(() => {})
-      .then(() => chrome.storage.local.set({ [XGlow.storageKey]: snapshot }))
+      .then(() => extensionApi.storage.local.set({ [XGlow.storageKey]: snapshot }))
       .then(() => { status.textContent = MESSAGES.saved; })
       .catch(() => { status.textContent = MESSAGES.saveFailed; });
   }
@@ -131,10 +132,10 @@
   });
   $('reset').addEventListener('click', () => save(XGlow.defaults));
 
-  const version = globalThis.chrome?.runtime?.getManifest?.().version;
+  const version = extensionApi?.runtime?.getManifest?.().version;
   if (version) $('version').textContent = version;
 
-  chrome.storage.local.get(XGlow.storageKey).then(stored => {
+  extensionApi.storage.local.get(XGlow.storageKey).then(stored => {
     settings = XGlow.normalize(stored[XGlow.storageKey]);
     render();
     setDisabled(false);

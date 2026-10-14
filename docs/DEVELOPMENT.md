@@ -4,12 +4,12 @@
 
 | Directory | Purpose |
 | --- | --- |
-| `extension/` | Directly loadable Chrome extension: manifest, runtime, styles and settings popup |
+| `extension/` | Directly loadable Chrome extension, also used for Safari: manifest, runtime, styles and settings popup |
 | `tests/` | Node tests, synthetic DOM fixtures and browser regression suites |
 | `scripts/` | Preview builder, local server, source checks and release packaging |
 | `scripts/preview/` | Sample content, demo styles and a local Chrome storage adapter |
 | `public/` | Generated demo and browser runners; ignored by Git |
-| `dist/` | Generated release archives; ignored by Git |
+| `dist/` | Generated release archives, the staged Safari extension and its Xcode project; ignored by Git |
 
 The extension itself has no build step. The preview builder reads the manifest and uses the actual extension CSS and JavaScript, replacing Chrome storage with a local browser adapter. Demo preferences never affect the installed extension.
 
@@ -23,6 +23,7 @@ The extension itself has no build step. The preview builder reads the manifest a
 | `npm run build:preview` | Generate the demo, popup preview, layout fixture and browser runners |
 | `npm run dev` | Build and serve previews on the provided `PORT` |
 | `npm run package` | Validate sources and create an extension-only ZIP with its license |
+| `npm run build:safari` | Stage the Safari edition in `dist/safari/XGlow/` and create its ZIP; add `-- --xcode` on macOS to create the Xcode project |
 
 Use unlocalhost to launch and expose the project:
 
@@ -65,6 +66,16 @@ Reports are written to `artifacts/themes/report` (HTML) and `artifacts/themes/re
 
 Contrast assertions use rendered text/control colors against the palette's opaque surface values. They catch numeric contrast regressions, but are not pixel-level analysis of every translucent gradient or proof of visual quality on real X. Report failures as failures, including pre-existing ones; do not turn them into skipped checks.
 
+## Safari
+
+Safari runs the files in `extension/` unchanged. Only the manifest differs: `scripts/safari.cjs` removes `minimum_chrome_version` and adds `browser_specific_settings.safari.strict_min_version`. Keep these rules so both browsers work:
+
+- Call extension APIs through `XGlow.api()`. It returns `browser` in Safari and `chrome` in Chrome. A test fails when runtime code uses `chrome.` directly.
+- Write every `backdrop-filter` declaration together with `-webkit-backdrop-filter`, including `none` resets. Safari before version 18 reads only the prefixed property, and the resets must also clear the prefixed property on native X surfaces. A test checks each rule.
+- The minimum Safari version is 16.4 (`:has()`, container queries, `overflow: clip`). Raise `SAFARI_MIN_VERSION` in `scripts/safari.cjs` when a change needs a newer feature.
+
+The browser regression suites also run in WebKit, for example with Playwright's WebKit build. Software-rendered WebKit can take more than 100 ms per frame, so suites wait for rendered frames, not only for timeouts.
+
 ## Integration constraints
 
 - Theme overrides are gated by the root `data-xlg` attribute so disabling the extension restores native appearance.
@@ -94,4 +105,4 @@ Keep the version consistent across `extension/manifest.json`, `package.json` and
 
 Generated pages, release output, screenshots and private working notes are ignored. Packaging includes only the contents of `extension/` plus `LICENSE`; no account-specific fixture or local artifact belongs in the ZIP.
 
-GitHub Actions runs source checks, Node tests, preview generation and packaging on Node 20 and 24. A separate Chromium job runs `npm run test:themes` and uploads its report even when tests fail. Real-X inspection remains a separate validation step.
+GitHub Actions runs source checks, Node tests, preview generation, packaging and the Safari staging build on Node 20 and 24. A separate Chromium job runs `npm run test:themes` and uploads its report even when tests fail. Creating the Xcode project needs macOS and is not part of CI. Real-X inspection remains a separate validation step.

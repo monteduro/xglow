@@ -1,10 +1,12 @@
 # Privacy policy — XGlow
 
-Last updated: October 12, 2026.
+Last updated: October 13, 2026.
 
 XGlow changes the appearance of X (formerly Twitter) in Chrome. It is an independent, open-source extension and is not affiliated with X Corp.
 
 ## Data on your device
+
+The Safari edition uses the same code and behaves the same way. In Safari, preferences are stored in Safari's local extension storage (`browser.storage.local`), and references to Chrome below apply to Safari accordingly.
 
 The extension saves appearance preferences in `chrome.storage.local`: whether the theme is enabled, the chosen color and tint, blur, opacity, card styling, lightweight mode and sidebar visibility. These settings remain in your Chrome profile. The extension does not sync them to a developer-operated service.
 

@@ -2,7 +2,10 @@
 (async () => {
   const checks = [];
   const check = (value, message) => { if (!value) throw new Error(message); checks.push(message); };
-  const wait = () => new Promise(resolve => setTimeout(resolve, 120));
+  // Resize work runs in the frame after a ResizeObserver callback, and frames
+  // can take longer than the timeout in software-rendered WebKit.
+  const nextFrame = () => new Promise(resolve => requestAnimationFrame(resolve));
+  const wait = () => new Promise(resolve => setTimeout(resolve, 120)).then(nextFrame).then(nextFrame).then(nextFrame);
   const primary = document.querySelector('[data-testid="primaryColumn"] > div');
   const group = document.getElementById('reply-fixture').content.firstElementChild.cloneNode(true);
   primary.append(group);

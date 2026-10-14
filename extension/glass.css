@@ -271,6 +271,7 @@ html[data-xlg] [data-xlg-toolbar] {
 }
 html[data-xlg] [data-xlg-toolbar] > div {
   background: transparent !important;
+  -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
   border-color: transparent !important;
 }
@@ -300,6 +301,7 @@ html[data-xlg] [data-xlg-composer][data-xlg-reply-composer] {
 
 html[data-xlg] [data-xlg-clear] {
   background: transparent !important;
+  -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
 /* Timeline posts drop the native separators; connected posts (with a

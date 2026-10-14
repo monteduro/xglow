@@ -40,6 +40,7 @@
       content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
       background: var(--xlg-surface); border: 1px solid var(--xlg-border); border-radius: 24px;
       box-shadow: inset 0 1px 0 var(--xlg-glint), 0 12px 40px var(--xlg-shadow);
+      -webkit-backdrop-filter: blur(var(--xlg-blur)) saturate(155%);
       backdrop-filter: blur(var(--xlg-blur)) saturate(155%);
     }
     :host([data-xlg-chat]) [data-testid="dm-inbox-panel"] { min-width: min(400px, 100%) !important; border-color: var(--xlg-border) !important; }
@@ -66,7 +67,7 @@
       background: rgba(var(--xlg-base), .96) !important;
       box-shadow: inset 0 0 0 1px var(--xlg-border), 0 12px 40px var(--xlg-shadow);
     }
-    :host([data-xlg-chat][data-xlg-chat-lite]) [data-testid="dm-container"]::before { backdrop-filter: none; }
+    :host([data-xlg-chat][data-xlg-chat-lite]) [data-testid="dm-container"]::before { -webkit-backdrop-filter: none; backdrop-filter: none; }
     :host([data-xlg-chat][data-xlg-chat-square]) [data-testid="dm-container"]::before,
     :host([data-xlg-chat][data-xlg-chat-square]) [data-testid="dm-conversation-header"],
     :host([data-xlg-chat][data-xlg-chat-square]) [data-testid="dm-composer-container"]::before { border-radius: 0; }
@@ -635,10 +636,11 @@
   }
 
   apply();
-  chrome.storage.local.get(XGlow.storageKey)
+  const storage = XGlow.api().storage;
+  storage.local.get(XGlow.storageKey)
     .then(stored => updateSettings(stored[XGlow.storageKey]))
     .catch(() => { apply(); schedule(); });
-  chrome.storage.onChanged.addListener((changes, area) => {
+  storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && changes[XGlow.storageKey]) updateSettings(changes[XGlow.storageKey].newValue);
   });
 

@@ -24,6 +24,7 @@ jobs:
       - run: npm test
       - run: npm run build:preview
       - run: npm run package
+      - run: npm run build:safari
 
   themes:
     runs-on: ubuntu-latest
