@@ -30,7 +30,7 @@ Give X a liquid glass look with translucent cards, soft reflections and rounded 
 • Keep connected timeline posts together in one frame and preserve the familiar flow of post-detail replies.
 • Follow X's light or dark appearance, with an optional lightweight mode.
 
-The listing images show two example color themes, Aurora and Amber, for the same extension. Switch between presets in Appearance or create your own palette.
+The listing images show Liquid Glass in the Aurora and Amber colors and the Cyberpunk Neon theme. Switch themes and presets in Appearance or create your own palette.
 
 Changes apply instantly from the extension's Appearance panel. Defaults are Amber, 50% tint, 10 px blur and 0% glass opacity. Reset returns to those defaults.
 
