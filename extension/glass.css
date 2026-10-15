@@ -285,6 +285,12 @@ html[data-xlg] [data-xlg-toolbar] [role="tab"][aria-selected="true"] {
   background: rgba(var(--xlg-ui-accent-rgb), .13) !important;
 }
 
+/* Creator Studio pages (X's Jetfuel framework) have no sticky header: give
+   their title the top inset of the glass header on other pages. */
+html[data-xlg] [data-testid="primaryColumn"] .jetfuel-style-root:not([data-testid="cellInnerDiv"] *, article *) {
+  padding-top: 14px !important;
+}
+
 /* ---------------------------------------------------------------- Composer */
 
 html[data-xlg] [data-xlg-composer] {
@@ -303,6 +309,42 @@ html[data-xlg] [data-xlg-clear] {
   background: transparent !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
+}
+/* Analytics paints its cards, tabs and bar tracks from X's design tokens,
+   including translucent and hover variants. --x-bg-primary stays: it backs
+   sticky table headers. */
+html[data-xlg] main {
+  --x-bg-secondary: rgba(var(--xlg-base), var(--xlg-opacity));
+  --x-bg-tertiary: var(--xlg-hover);
+}
+/* Cards on pages outside the timeline (Analytics, Subscription) keep their
+   native shape and border width. No backdrop filter: it would become the
+   containing block of their fixed menus and tooltips. */
+html[data-xlg] [data-xlg-surface] {
+  background: var(--xlg-surface) !important;
+  border-color: var(--xlg-border) !important;
+  box-shadow: inset 0 1px 0 var(--xlg-glint) !important;
+}
+/* Clickable cards (Analytics metrics) keep a hover state, like post cards. */
+html[data-xlg] :is(a, button, [role="button"], [role="link"]):hover [data-xlg-surface] {
+  background: linear-gradient(var(--xlg-hover), var(--xlg-hover)), var(--xlg-surface) !important;
+  border-color: rgba(var(--xlg-ui-accent-rgb), .38) !important;
+}
+/* List rows (Subscription, Settings, Lists, Communities) rest on X's opaque
+   surface and hover with an opaque color: use the theme's instead. */
+html[data-xlg] [data-xlg-row] {
+  background: transparent !important;
+}
+html[data-xlg] [data-xlg-row]:hover {
+  background: var(--xlg-hover) !important;
+}
+html[data-xlg] [data-xlg-row]:is([aria-selected="true"], [aria-current="page"]):not([data-testid="activeRoute"] > *) {
+  background: rgba(var(--xlg-ui-accent-rgb), .15) !important;
+}
+/* The selected Settings section, over a cleared list. Every row carries
+   the activeRoute test ID; only the selected tab is opaque. */
+html[data-xlg] main [data-testid="activeRoute"]:has(> [aria-selected="true"]) {
+  background: rgba(var(--xlg-ui-accent-rgb), .15) !important;
 }
 /* Timeline posts drop the native separators; connected posts (with a
    .r-m5arl1 connector) keep them. */
@@ -557,8 +599,9 @@ html[data-xlg] [data-xlg-toolbar]:has([data-xlg-search-form]) [role="tab"][aria-
 html[data-xlg] [data-xlg-toolbar] [role="navigation"] {
   border-color: transparent !important;
 }
-/* Kept nearly opaque so suggestions stay readable at any glass opacity. */
-html[data-xlg] [data-xlg-search-popup] {
+/* Kept nearly opaque so suggestions stay readable at any glass opacity.
+   Mention suggestions in the composer use the same surface. */
+html[data-xlg] :is([data-xlg-search-popup], [data-xlg-popup]) {
   background: linear-gradient(135deg, rgba(255,255,255,.07), transparent 48%), rgba(var(--xlg-base), .94) !important;
   border: 1px solid var(--xlg-border) !important;
   border-radius: 16px !important;
@@ -566,14 +609,32 @@ html[data-xlg] [data-xlg-search-popup] {
   -webkit-backdrop-filter: blur(var(--xlg-blur)) saturate(155%) !important;
   backdrop-filter: blur(var(--xlg-blur)) saturate(155%) !important;
   z-index: 5 !important;
+}
+html[data-xlg] [data-xlg-search-popup] {
   margin-top: 6px !important;
+}
+/* Inside the composer's glass, which is a backdrop root, the blur cannot
+   reach the timeline: the panel stays opaque instead. */
+html[data-xlg] [data-xlg-popup] {
+  background: linear-gradient(135deg, rgba(255,255,255,.07), transparent 48%), rgb(var(--xlg-base)) !important;
+}
+/* X highlights the selected suggestion with an opaque bar on the wrapper
+   below each option: use the theme's hover and accent tints. */
+html[data-xlg] [data-xlg-popup] [role="option"] > * {
+  background: transparent !important;
+}
+html[data-xlg] [data-xlg-popup] [role="option"]:hover > * {
+  background: var(--xlg-hover) !important;
+}
+html[data-xlg] [data-xlg-popup] [role="option"][aria-selected="true"] > * {
+  background: rgba(var(--xlg-ui-accent-rgb), .15) !important;
 }
 /* The native dropdown shell (cleared in content.js) keeps its own glow and
    8px corners behind the themed surface. */
 html[data-xlg] :has(> [data-xlg-search-popup]) {
   box-shadow: none !important;
 }
-html[data-xlg][data-xlg-lite] [data-xlg-search-popup] {
+html[data-xlg][data-xlg-lite] :is([data-xlg-search-popup], [data-xlg-popup]) {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
@@ -621,10 +682,11 @@ html[data-xlg] [role="menu"]:has([data-testid="Dropdown"]) {
   box-shadow: none !important;
   overflow: visible !important;
 }
-html[data-xlg] [data-testid="Dropdown"] [role="menuitem"] {
+/* The More menu uses plain links instead of menu items. */
+html[data-xlg] [data-testid="Dropdown"] :is([role="menuitem"], a[href]) {
   background: transparent !important;
 }
-html[data-xlg] [data-testid="Dropdown"] [role="menuitem"]:hover {
+html[data-xlg] [data-testid="Dropdown"] :is([role="menuitem"], a[href]):hover {
   background: var(--xlg-hover) !important;
 }
 
@@ -633,7 +695,7 @@ html[data-xlg] [data-testid="Dropdown"] [role="menuitem"]:hover {
 /* Centered modals (marked in content.js): the page behind is blurred and
    tinted, and the panel uses a themed surface, nearly opaque for reading. The
    mask has no descendants, so its backdrop filter moves no containing block. */
-html[data-xlg] [data-testid="mask"]:has(~ [aria-modal="true"] > [data-xlg-modal]) {
+html[data-xlg] [data-testid="mask"]:is(:has(~ * [data-xlg-modal], ~ [data-xlg-modal]), [data-xlg-modal-mask]) {
   background: rgba(var(--xlg-base), .35) !important;
   -webkit-backdrop-filter: blur(var(--xlg-blur)) saturate(120%) !important;
   backdrop-filter: blur(var(--xlg-blur)) saturate(120%) !important;
@@ -646,7 +708,7 @@ html[data-xlg] [data-xlg-modal] {
 }
 /* Sticky bars are narrower than the panel: a tint would show as a band.
    They only blur the content scrolling beneath them, like X's header. */
-html[data-xlg] [data-xlg-modal-bar] {
+html[data-xlg] :is([data-xlg-modal-bar], [data-xlg-sticky]) {
   background: transparent !important;
   -webkit-backdrop-filter: blur(12px) !important;
   backdrop-filter: blur(12px) !important;
@@ -693,7 +755,7 @@ html[data-xlg][data-xlg-lite] [data-testid="mask"]:has(~ [aria-modal="true"] > [
 html[data-xlg][data-xlg-lite] [data-xlg-modal] {
   background: linear-gradient(135deg, rgba(255,255,255,.07), transparent 48%), rgb(var(--xlg-base)) !important;
 }
-html[data-xlg][data-xlg-lite] [data-xlg-modal-bar] {
+html[data-xlg][data-xlg-lite] :is([data-xlg-modal-bar], [data-xlg-sticky]) {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
   background: rgb(var(--xlg-base)) !important;

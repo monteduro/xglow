@@ -56,6 +56,59 @@
   check(JSON.stringify(bounds(nav)) === JSON.stringify(nativeNav), 'Showing the sidebar restores the native navigation position');
   await chrome.storage.local.set({ xGlass: { sidebar: false } }); await settle();
   check(getComputedStyle(sidebar).display === 'none', 'The toggle can hide the sidebar again');
+  // Subscription keeps its account links in the sidebar column.
+  const path = location.pathname, trigger = document.createElement('div');
+  history.replaceState(null, '', '/i/premium'); content.append(trigger); await settle();
+  check(getComputedStyle(sidebar).display !== 'none' && JSON.stringify(bounds(nav)) === JSON.stringify(nativeNav), 'Subscription pages show the sidebar with the native layout');
+  history.replaceState(null, '', path); trigger.remove(); await settle();
+  check(getComputedStyle(sidebar).display === 'none', 'Leaving Subscription hides the sidebar again');
+  // Analytics, Grok or Settings render no sidebar and use its width themselves.
+  const columns = primary.parentElement;
+  sidebar.remove(); await settle();
+  check(!root.hasAttribute('data-xlg-hide-sidebar') && JSON.stringify(bounds(nav)) === JSON.stringify(nativeNav), 'Pages without a sidebar keep the native layout');
+  // Settings and Articles have neither column, only section regions.
+  const regions = document.createElement('section');
+  columns.append(sidebar); await settle();
+  primary.replaceWith(regions); sidebar.remove(); await settle();
+  check(!root.hasAttribute('data-xlg-hide-sidebar'), 'Section pages without columns keep the native layout');
+  regions.replaceWith(primary);
+  const spinner = document.createElement('div'); spinner.setAttribute('role', 'progressbar'); spinner.textContent = 'Loading…';
+  columns.append(sidebar); await settle();
+  primary.replaceWith(spinner); sidebar.remove(); await settle();
+  check(root.hasAttribute('data-xlg-hide-sidebar'), 'A route spinner keeps the previous layout');
+  spinner.replaceWith(primary); columns.append(sidebar); await settle();
+  check(getComputedStyle(sidebar).display === 'none' && primary.getBoundingClientRect().width === 600, 'Pages with a sidebar hide it again');
+
+  // Pages outside the timeline paint opaque backdrops and cards of their own.
+  const page = document.createElement('div');
+  page.innerHTML = '<div class="page-backdrop" style="background:rgb(0,0,0);min-height:200px"><div class="page-title" style="background:rgb(0,0,0);height:36px">Title</div><div class="page-card" style="background:rgb(20,20,20);border:1px solid rgb(47,51,54);border-radius:16px;height:80px"></div><div class="page-light" style="background:rgb(255,255,255);width:200px;height:60px"></div><div class="page-button" role="button" style="width:200px;height:60px"><div style="background:rgb(0,0,0);height:60px"></div></div><button class="page-metric" type="button" style="display:block;width:200px;padding:0;background:transparent"><div style="background:rgb(20,20,20);border:1px solid rgb(47,51,54);border-radius:20px;height:80px"></div></button><div class="page-recycled" style="height:60px"></div><div data-testid="cellInnerDiv"><div class="page-list-cell" role="link" style="height:72px;background:rgb(0,0,0)">List</div></div><div class="page-sticky" style="position:sticky;top:0;height:48px;background:rgb(0,0,0)"></div><a class="page-row" href="#row" style="display:block;height:48px">Row</a><button class="page-pill" type="button" style="display:block;width:200px;height:48px;background:rgb(255,255,255)">Upgrade</button></div>';
+  content.append(page); await settle();
+  const pageStyle = selector => getComputedStyle(page.querySelector(selector));
+  check(pageStyle('.page-backdrop').backgroundColor === 'rgba(0, 0, 0, 0)' && pageStyle('.page-title').backgroundColor === 'rgba(0, 0, 0, 0)', 'Opaque page backdrops and title rows are cleared');
+  check(pageStyle('.page-card').backgroundColor !== 'rgb(20, 20, 20)' && pageStyle('.page-card').borderTopColor !== 'rgb(47, 51, 54)' && pageStyle('.page-card').borderRadius === '16px' && pageStyle('.page-card').backdropFilter === 'none', 'Page cards become surfaces with their native shape and no blur');
+  check(pageStyle('.page-light').backgroundColor === 'rgb(255, 255, 255)' && pageStyle('.page-button > div').backgroundColor === 'rgb(0, 0, 0)', 'Opposite-tone backdrops and flat control states keep their colors');
+  check(page.querySelector('.page-sticky').hasAttribute('data-xlg-sticky') && pageStyle('.page-sticky').backdropFilter.includes('blur'), 'Sticky page headers blur the rows scrolling beneath them');
+  check(page.querySelector('.page-list-cell').hasAttribute('data-xlg-row') && pageStyle('.page-list-cell').backgroundColor === 'rgba(0, 0, 0, 0)', 'Opaque list cells rest on the glass');
+  check(page.querySelector('.page-row').hasAttribute('data-xlg-row') && !page.querySelector('.page-pill').hasAttribute('data-xlg-row'), 'List rows get the theme hover; opposite-tone pills keep their own');
+  check(page.querySelector('.page-metric > div').hasAttribute('data-xlg-surface') && pageStyle('.page-metric > div').borderRadius === '20px', 'Clickable cards become surfaces with their native shape');
+  // X swaps classes in place on route changes, together with other mutations.
+  page.querySelector('.page-recycled').className = 'page-recycled suggestions'; page.append(document.createElement('div')); await settle();
+  check(pageStyle('.page-recycled').backgroundColor === 'rgba(0, 0, 0, 0)', 'A recycled container that turns opaque is cleared');
+  // Creator Studio styles arrive after its containers are rendered.
+  const late = document.createElement('div'); late.className = 'late-surface'; late.style.height = '60px';
+  page.append(late); await settle();
+  const lateStyle = document.createElement('style'); lateStyle.textContent = '.late-surface { background: rgb(0, 0, 0); }';
+  document.head.append(lateStyle); await settle();
+  check(late.hasAttribute('data-xlg-clear'), 'Containers styled by a late stylesheet are judged again');
+  lateStyle.remove();
+  page.remove();
+  // Creator Studio renders its own app root without a sticky header.
+  const studio = document.createElement('div'); studio.className = 'jetfuel-style-root';
+  content.append(studio); await settle();
+  check(getComputedStyle(studio).paddingTop === '14px', 'Creator Studio titles get the header inset');
+  studio.remove();
+  const tokens = getComputedStyle(document.querySelector('main'));
+  check(tokens.getPropertyValue('--x-bg-secondary').trim().startsWith('rgba(') && tokens.getPropertyValue('--x-bg-tertiary').trim() === getComputedStyle(root).getPropertyValue('--xlg-hover').trim(), 'Analytics design tokens map to the theme inside the page');
   await chrome.storage.local.set({ xGlass: { enabled: false } }); await settle();
   check(getComputedStyle(sidebar).display !== 'none', 'Disabling the extension restores native visibility');
   await chrome.storage.local.set({ xGlass: {} }); await settle();
@@ -84,6 +137,17 @@
   check(!newPosts.hasAttribute('data-xlg-new-posts'), 'A recycled cell with other content loses the new-posts marker');
   recycled.remove(); await settle();
   check(newPosts.hasAttribute('data-xlg-new-posts'), 'The marker returns when the cell is a new-posts row again');
+
+  // Mention suggestions open inside the composer, over the timeline.
+  const mentions = document.createElement('div');
+  mentions.setAttribute('role', 'listbox'); mentions.style.cssText = 'position:absolute;width:300px;height:120px;background:rgb(0,0,0);border-radius:4px';
+  mentions.innerHTML = '<div role="option" aria-selected="true"><div class="mention-active" role="presentation" style="height:60px;background:rgb(22,24,28)"><img alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="></div></div>';
+  document.querySelector('[data-xlg-composer]').append(mentions); await settle();
+  check(mentions.hasAttribute('data-xlg-popup') && getComputedStyle(mentions).backgroundColor !== 'rgba(0, 0, 0, 0)' && getComputedStyle(mentions).backgroundColor !== 'rgb(0, 0, 0)', 'Mention suggestions get an opaque themed surface');
+  const activeMention = getComputedStyle(mentions.querySelector('.mention-active')).backgroundColor;
+  const mentionAccent = getComputedStyle(root).getPropertyValue('--xlg-ui-accent-rgb').split(',').map(channel => channel.trim()).join(', ');
+  check(activeMention === `rgba(${mentionAccent}, 0.15)`, 'The selected suggestion is highlighted with the accent tint, not an opaque bar');
+  mentions.remove();
 
   // Profile cover: aligned with the header and cards, only the link is clipped.
   const cover = document.createElement('a');
@@ -132,6 +196,14 @@
   check(getComputedStyle(modalPanel).backgroundColor === 'rgb(20, 20, 20)' && getComputedStyle(mask).backgroundColor === 'rgba(0, 0, 0, 0.5)', 'Disabling the theme restores native modals');
   await chrome.storage.local.set({ xGlass: {} }); await settle();
   document.querySelector('#layers').remove();
+  // Premium nests its rounded panel, Spaces opens a sheet dialog without
+  // aria-modal and profile hover cards float over the page.
+  const floating = document.createElement('div'); floating.id = 'layers';
+  floating.innerHTML = '<div role="dialog" aria-modal="true" style="position:fixed;inset:0"><div><div class="nested-panel" role="dialog" style="width:400px;height:120px;border-radius:24px;background:rgb(20,20,20)"></div></div></div><div><div class="sheet-mask" data-testid="mask" style="position:fixed;inset:0;background:rgba(0,0,0,.5)"></div></div><div class="sheet-panel" data-testid="sheetDialog" style="width:400px;height:120px;border-radius:16px;background:rgb(0,0,0)"></div><div class="hover-card" data-testid="HoverCard" style="width:300px;height:120px;border-radius:16px;background:rgb(20,20,20)"></div>';
+  document.body.append(floating); await settle();
+  check(['.nested-panel', '.sheet-panel', '.hover-card'].every(selector => floating.querySelector(selector).hasAttribute('data-xlg-modal') && getComputedStyle(floating.querySelector(selector)).backgroundColor !== 'rgb(20, 20, 20)'), 'Nested, sheet and hover-card panels get the themed modal surface');
+  check(getComputedStyle(floating.querySelector('.sheet-mask')).backdropFilter.includes('blur'), 'The mask of a sheet in another layer is blurred and tinted');
+  floating.remove();
 
   const backgroundSize = getComputedStyle(root).backgroundSize;
   const spacer = document.createElement('div'); spacer.style.height = '5000px'; content.append(spacer);

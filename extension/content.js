@@ -6,6 +6,9 @@
 
   const THREAD_ROUTE = /^\/[^/]+\/status\/\d+(?:\/photo\/\d+)?\/?$/;
   const MESSAGES_ROUTE = /^\/(?:i\/chat|messages)(?:\/|$)/;
+  // Subscription keeps its account links (help, support, plan management) in
+  // the sidebar column, so the column stays visible there.
+  const PAGE_SIDEBAR_ROUTE = /^\/i\/premium(?:\/|$)/;
   // The 2px reply connector between posts. Segments that point up to the
   // previous post are absolutely positioned (atomic class .r-1p0dtai).
   const CONNECTOR = '.r-m5arl1';
@@ -19,6 +22,7 @@
   let settings = XGlow.normalize();
   let nativeTone = 'dark';
   let frame = 0;
+  let sidebarPage = true;
 
   const mark = (element, name) => {
     if (element && !element.hasAttribute(name)) element.setAttribute(name, '');
@@ -194,14 +198,17 @@
     }
     root.toggleAttribute('data-xlg-thread', THREAD_ROUTE.test(location.pathname));
     const header = document.querySelector('header[role="banner"]');
-    syncLayout(header, document.querySelector('main[role="main"]'));
+    const main = document.querySelector('main[role="main"]');
+    syncSidebarPage(main);
+    syncSidebar();
+    syncLayout(header, main);
     discoverNav(header);
   }
 
   /* -------------------------------------------------- Native backgrounds */
 
   // Glass surfaces and elements that are already cleared.
-  const CLEAR_EXEMPT = '[data-xlg-composer], [data-xlg-toolbar], [data-xlg-reply-notice], [data-xlg-search], [data-xlg-search-popup], [data-xlg-modal-bar], [data-xlg-clear]';
+  const CLEAR_EXEMPT = '[data-xlg-composer], [data-xlg-toolbar], [data-xlg-reply-notice], [data-xlg-search], [data-xlg-search-popup], [data-xlg-popup], [data-xlg-modal-bar], [data-xlg-clear], [data-xlg-surface], [data-xlg-sticky]';
   // Backdrops of avatars and media are content, not interface.
   const MEDIA_CONTENT = '[data-testid^="UserAvatar-Container-"], [data-testid="Tweet-User-Avatar"], [data-testid="tweetPhoto"], [data-testid="videoPlayer"], [role="img"]';
 
@@ -226,6 +233,107 @@
       if (containsMedia && !containsInput) continue;
       clearBackground(element);
     }
+  }
+
+  /* -------------------------------------------------------- Page surfaces */
+
+  // Pages outside the timeline (Creator Studio, Settings, Articles, Analytics,
+  // Subscription) paint X's opaque color on their own containers. Flat
+  // backdrops are cleared; rounded cards keep their shape as a surface.
+  // Backdrops of the opposite tone (white buttons on dark) stay. Clickable
+  // cards (Analytics metrics) become surfaces too, but flat colors inside
+  // controls mark states such as a selected tab and stay. List rows (Settings,
+  // Subscription) hover with an opaque color: they get the theme's hover.
+  const PAGE_CONTROLS = 'a, button, [role="button"], [role="link"], [role="tab"]';
+  // Lists, Communities and notice cells sit in virtualized cells; posts keep
+  // their own card styling.
+  const PAGE_SURFACES = `:is(div, ${PAGE_CONTROLS}):not(article *, [role="dialog"] *)`;
+  // Suggestion popups (mentions, hashtags) get their own surface in
+  // markPopups; glass.css restyles the selected suggestion.
+  const PAGE_SURFACE_SKIP = `[role="listbox"], ${MEDIA_CONTENT}`;
+  // Class names at the last judgment: X recycles containers across routes.
+  // Creator Studio loads its stylesheet after rendering, so every judgment is
+  // dropped when a stylesheet loads and when the route changes.
+  let checkedSurfaces = new WeakMap();
+  let surfacePath = '';
+  let surfaceRetry = 0;
+  document.addEventListener('load', event => {
+    if (!event.target.matches?.('link[rel~="stylesheet"], style')) return;
+    checkedSurfaces = new WeakMap();
+    schedule();
+  }, true);
+
+  // A hovered card shows X's translucent hover color, not its surface.
+  function isHoverColor(element) {
+    const alpha = getComputedStyle(element).backgroundColor.match(/[\d.]+/g)?.[3];
+    return alpha !== undefined && Number(alpha) > 0 && element.matches(':hover');
+  }
+
+  const hasPageTone = element => {
+    const [red, green, blue] = getComputedStyle(element).backgroundColor.match(/[\d.]+/g).map(Number);
+    return ((red * .2126 + green * .7152 + blue * .0722) > 150 ? 'light' : 'dark') === nativeTone;
+  };
+
+  // A large transparent control, one painted with X's opaque surface (List
+  // cells), or one already showing X's hover color. Opposite-tone pills (white
+  // buttons on dark) keep their own colors.
+  function pageRowMarker(element) {
+    const { width, height } = element.getBoundingClientRect();
+    if (!width) return null;
+    if (width < 120 || height < 40 || element.closest('[data-xlg-toolbar], [data-xlg-new-posts]')) return '';
+    const transparent = getComputedStyle(element).backgroundColor === 'rgba(0, 0, 0, 0)';
+    return transparent || (hasNativeSurface(element) && hasPageTone(element)) ? 'data-xlg-row' : '';
+  }
+
+  // The marker for a container, '' when it keeps its color, or null while it
+  // is still too small or hovered to judge.
+  function pageSurfaceMarker(element) {
+    if (element.matches(CLEAR_EXEMPT) || element.closest(PAGE_SURFACE_SKIP)) return '';
+    if (element.matches(PAGE_CONTROLS)) return pageRowMarker(element);
+    // The selected Settings section is restyled by glass.css.
+    if (element.closest('[data-testid="activeRoute"]')) return '';
+    if (!hasNativeSurface(element)) {
+      if (!isHoverColor(element)) return '';
+      // Hover ends without a mutation: check the card again shortly.
+      if (!surfaceRetry) surfaceRetry = setTimeout(() => { surfaceRetry = 0; schedule(); }, 500);
+      return null;
+    }
+    const { width, height } = element.getBoundingClientRect();
+    // Title rows (Creator Studio Inspiration) are only 36px tall.
+    if (width < 120 || height < 24) return null;
+    if (!hasPageTone(element) || element.querySelector('video, canvas, [data-testid="videoPlayer"]')) return '';
+    const style = getComputedStyle(element);
+    // Sticky table headers (Analytics Content) must still hide the rows below.
+    if (style.position === 'sticky' || style.position === 'fixed') return 'data-xlg-sticky';
+    if (parseFloat(style.borderTopLeftRadius) >= 8) return 'data-xlg-surface';
+    return element.closest(PAGE_CONTROLS) ? '' : 'data-xlg-clear';
+  }
+
+  // Mention and hashtag suggestions open over the composer: unlike search,
+  // their listbox is the visible panel.
+  function markPopups() {
+    for (const popup of document.querySelectorAll('[role="listbox"]:not([data-xlg-search-popup])')) {
+      mark(popup, 'data-xlg-popup');
+      popup.removeAttribute('data-xlg-clear');
+    }
+  }
+
+  // Markers are applied after measuring, so the loop never forces a relayout.
+  function markPageSurfaces(main) {
+    if (surfacePath !== location.pathname) {
+      surfacePath = location.pathname;
+      checkedSurfaces = new WeakMap();
+    }
+    const marks = [];
+    for (const element of main.querySelectorAll(PAGE_SURFACES)) {
+      const classes = element.className;
+      if (checkedSurfaces.get(element) === classes) continue;
+      const marker = pageSurfaceMarker(element);
+      if (marker === null) continue;
+      checkedSurfaces.set(element, classes);
+      if (marker) marks.push([element, marker]);
+    }
+    for (const [element, marker] of marks) mark(element, marker);
   }
 
   /* --------------------------------------------------------------- Search */
@@ -277,14 +385,28 @@
   // Centered modals (compose, settings dialogs) are a rounded panel on a
   // full-screen mask in #layers. Full-screen dialogs, such as the media
   // viewer or the compose screen on narrow viewports, keep their native look.
+  // Compose-style modals put the panel right under the aria-modal layer;
+  // Premium nests a rounded role="dialog" deeper, and Spaces opens a sheet
+  // dialog without aria-modal. Profile hover cards float the same way.
+  // Full-screen viewers have no rounded panel.
+  function findModalPanel(modal) {
+    for (const candidate of [modal.firstElementChild, ...modal.querySelectorAll('[role="dialog"], [data-testid="sheetDialog"]'), modal]) {
+      if (!candidate) continue;
+      if (candidate.hasAttribute('data-xlg-modal')) return candidate;
+      const { width } = candidate.getBoundingClientRect();
+      if (width > 0 && width < innerWidth && parseFloat(getComputedStyle(candidate).borderTopLeftRadius) >= 12) return candidate;
+    }
+    return null;
+  }
+
   function discoverModals() {
-    for (const modal of document.querySelectorAll('#layers [role="dialog"][aria-modal="true"]')) {
-      const panel = modal.firstElementChild;
+    for (const modal of document.querySelectorAll('#layers :is([role="dialog"][aria-modal="true"], [data-testid="sheetDialog"], [data-testid="HoverCard"])')) {
+      const panel = findModalPanel(modal);
       if (!panel) continue;
-      if (!panel.hasAttribute('data-xlg-modal')) {
-        const isPanel = parseFloat(getComputedStyle(panel).borderTopLeftRadius) >= 12 && panel.getBoundingClientRect().width < innerWidth;
-        if (!isPanel) continue;
-        mark(panel, 'data-xlg-modal');
+      mark(panel, 'data-xlg-modal');
+      // The Spaces sheet and its mask live in different layers.
+      if (panel.matches('[data-testid="sheetDialog"]')) {
+        for (const mask of document.querySelectorAll('#layers [data-testid="mask"]')) mark(mask, 'data-xlg-modal-mask');
       }
       // Sticky header and toolbar bars keep a translucent surface over the
       // scrolling content; other opaque wrappers are cleared.
@@ -541,6 +663,21 @@
 
   /* -------------------------------------------------------------- Sidebar */
 
+  // Analytics, Grok, Settings and similar pages render no sidebar and give its
+  // width to their own content, so they keep X's layout. Settings and Articles
+  // have no primary column, only section regions. While a route loads, main
+  // holds just a spinner: the previous page type is kept for those frames.
+  function syncSidebarPage(main) {
+    if (!main) return;
+    if (main.querySelector('[data-testid="sidebarColumn"]')) sidebarPage = true;
+    else if (main.querySelector('[data-testid="primaryColumn"], section')) sidebarPage = false;
+  }
+
+  function syncSidebar() {
+    const path = location.pathname;
+    root.toggleAttribute('data-xlg-hide-sidebar', !settings.sidebar && !PAGE_SIDEBAR_ROUTE.test(path) && (sidebarPage || MESSAGES_ROUTE.test(path)));
+  }
+
   function markSidebarPanels() {
     const sidebar = document.querySelector('[data-testid="sidebarColumn"]');
     if (!sidebar) return;
@@ -578,7 +715,7 @@
     for (const [id, theme] of Object.entries(XGlow.themeDefinitions)) {
       if (theme.marker) root.toggleAttribute(theme.marker, settings.theme === id);
     }
-    root.toggleAttribute('data-xlg-hide-sidebar', !settings.sidebar);
+    syncSidebar();
     const palette = XGlow.palette(settings, nativeTone);
     for (const [property, key] of PALETTE_PROPERTIES) root.style.setProperty(property, palette[key]);
     root.style.setProperty('--xlg-blur', `${settings.blur}px`);
@@ -620,6 +757,9 @@
     const primary = document.querySelector('[data-testid="primaryColumn"]');
     if (primary) discoverPrimary(primary);
     markSidebarPanels();
+    const main = document.querySelector('main[role="main"]');
+    markPopups();
+    if (main && !MESSAGES_ROUTE.test(location.pathname)) markPageSurfaces(main);
     discoverModals();
   }
 
