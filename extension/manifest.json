@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "XGlow",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "A liquid glass look for X. Local preferences, no external services.",
   "minimum_chrome_version": "111",
   "icons": {
